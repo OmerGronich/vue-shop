@@ -1,8 +1,9 @@
 <template>
   <div class="product-card">
-    <div class="product-image">
+    <router-link :to="`/${product.id}`" class="product-image">
       <img :src="product.image" />
-    </div>
+      <div>Go to Product</div>
+    </router-link>
     <div class="product-info">
       <h5>{{ product.title }}</h5>
       <h6>{{ product.price }}$</h6>
