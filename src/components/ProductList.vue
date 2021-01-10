@@ -4,6 +4,7 @@
       v-for="product in products"
       :key="product.id"
       :product="product"
+      @addedToCart="$emit('addedToCart', $event)"
     ></ProductCard>
   </section>
 </template>

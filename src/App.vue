@@ -7,7 +7,11 @@
     @categorySelected="onCategorySelected($event)"
     @sortOptionSelected="onSortOptionSelected($event)"
   ></Header>
-  <ProductList :products="filteredProducts"></ProductList>
+  <Cart :products="cartProducts"></Cart>
+  <ProductList
+    :products="filteredProducts"
+    @addedToCart="addToCart($event)"
+  ></ProductList>
 </template>
 
 <script>
@@ -15,12 +19,14 @@ import axios from "axios";
 import ProductList from "@/components/ProductList";
 import Header from "@/components/Header";
 import { groupBy } from "@/utils/group-by";
+import Cart from "@/components/Cart";
 
 export default {
   name: "App",
   data() {
     return {
       products: [],
+      cartProducts: [],
       selectedCategory: "All",
       sortOptions: [
         "Alphabetically, A-Z",
@@ -73,6 +79,7 @@ export default {
   },
   components: {
     ProductList,
+    Cart,
     Header
   },
   async mounted() {
@@ -84,6 +91,9 @@ export default {
     },
     onSortOptionSelected(option) {
       this.selectedSortOption = option;
+    },
+    addToCart(product) {
+      this.cartProducts.push(product);
     }
   }
 };
