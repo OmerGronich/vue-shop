@@ -1,5 +1,6 @@
 <template>
   <template v-if="!loading">
+    <div>sale ends in: {{ timer }}</div>
     <Header
       :categories="categories"
       :selectedCategory="selectedCategory"
@@ -12,7 +13,7 @@
     ></Header>
     <Cart :products="cartProducts"></Cart>
     <ProductList
-      :products="filteredByPrice"
+      :products="filteredProductsByPrice"
       @addedToCart="addToCart($event)"
     ></ProductList>
   </template>
@@ -27,11 +28,15 @@ import ProductList from "@/components/ProductList";
 import Header from "@/components/Header";
 import { groupBy } from "@/utils/group-by";
 import Cart from "@/components/Cart";
+import useTimer from "@/compositions/use-timer";
+import { computed, onMounted, reactive, toRefs, watch } from "vue";
 
 export default {
   name: "App",
-  data() {
-    return {
+  setup() {
+    const { timer } = useTimer();
+
+    const state = reactive({
       products: [],
       cartProducts: [],
       selectedCategory: "All",
@@ -43,27 +48,36 @@ export default {
       ],
       selectedSortOption: "Alphabetically, A-Z",
       loading: false,
-      priceRange: this.maxPrice
-    };
-  },
-  computed: {
-    categories() {
-      return ["All", ...Object.keys(groupBy(this.products, "category"))];
-    },
-    filteredProducts() {
-      let filteredProducts = this.products;
+      priceRange: 0
+    });
 
-      if (this.selectedCategory !== "All") {
-        filteredProducts = this.products.filter(
-          product => product.category === this.selectedCategory
+    const categories = computed(() => [
+      "All",
+      ...Object.keys(groupBy(state.products, "category"))
+    ]);
+
+    const isSaleActive = computed(() => timer.value !== "00:00");
+
+    const filteredProducts = computed(() => {
+      let filteredProducts = state.products.map(product => {
+        return {
+          ...product,
+          onSale: isSaleActive.value && product.category === "electronics"
+        };
+      });
+
+      if (state.selectedCategory !== "All") {
+        filteredProducts = filteredProducts.filter(
+          product => product.category === state.selectedCategory
         );
       }
 
       return filteredProducts;
-    },
-    filteredByPrice() {
-      return this.filteredProducts
-        .filter(p => p.price <= this.priceRange)
+    });
+
+    const filteredProductsByPrice = computed(() => {
+      return filteredProducts.value
+        .filter(p => p.price <= state.priceRange)
         .sort((a, b) => {
           const comparer = (prop, asc) =>
             asc
@@ -78,7 +92,7 @@ export default {
               ? -1
               : 1;
 
-          switch (this.selectedSortOption) {
+          switch (state.selectedSortOption) {
             case "Alphabetically, A-Z":
               return comparer("title", true);
             case "Alphabetically, Z-A":
@@ -89,43 +103,61 @@ export default {
               return comparer("price", false);
           }
         });
-    },
-    maxPrice() {
-      return Math.max(...this.filteredProducts.map(p => p.price));
-    }
+    });
+
+    const maxPrice = computed(() => {
+      return Math.max(...filteredProducts.value.map(p => p.price));
+    });
+
+    const onCategorySelected = category => {
+      state.selectedCategory = category;
+    };
+    const onSortOptionSelected = option => {
+      state.selectedSortOption = option;
+    };
+    const addToCart = product => {
+      state.cartProducts.push(product);
+    };
+
+    watch(
+      () => maxPrice.value,
+      () => {
+        state.priceRange = maxPrice.value;
+      }
+    );
+
+    onMounted(async () => {
+      try {
+        state.loading = true;
+        state.products = (
+          await axios.get("https://fakestoreapi.com/products")
+        ).data;
+        state.loading = false;
+
+        console.log(state);
+        console.log(filteredProducts);
+        console.log(filteredProductsByPrice);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    return {
+      ...toRefs(state),
+      timer,
+      categories,
+      filteredProducts,
+      filteredProductsByPrice,
+      maxPrice,
+      onCategorySelected,
+      onSortOptionSelected,
+      addToCart
+    };
   },
   components: {
     ProductList,
     Cart,
     Header
-  },
-  async mounted() {
-    try {
-      this.loading = true;
-      this.products = (
-        await axios.get("https://fakestoreapi.com/products")
-      ).data;
-      console.log(this.products);
-      this.loading = false;
-    } catch (e) {
-      console.error(e);
-    }
-  },
-  methods: {
-    onCategorySelected(category) {
-      this.selectedCategory = category;
-    },
-    onSortOptionSelected(option) {
-      this.selectedSortOption = option;
-    },
-    addToCart(product) {
-      this.cartProducts.push(product);
-    }
-  },
-  watch: {
-    maxPrice(val) {
-      this.priceRange = val;
-    }
   }
 };
 </script>

@@ -6,7 +6,16 @@
     </router-link>
     <div class="product-info">
       <h5>{{ product.title }}</h5>
-      <h6>{{ product.price }}$</h6>
+      <h6>
+        <div :class="{ 'on-sale': product.onSale }">{{ product.price }}</div>
+        <div v-if="product.onSale">
+          {{
+            product.onSale
+              ? Math.floor(product.price - product.price * 0.15)
+              : product.price
+          }}$
+        </div>
+      </h6>
     </div>
     <button @click="$emit('addedToCart', product)">Add to Cart</button>
   </div>
@@ -41,5 +50,10 @@ export default {
   margin-top: auto;
   padding-top: 20px;
   text-align: center;
+}
+
+.on-sale {
+  text-decoration: line-through;
+  opacity: 0.5;
 }
 </style>
