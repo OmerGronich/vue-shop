@@ -3,6 +3,11 @@
     <h1>Shop</h1>
     <div class="sort">
       <div class="collection-sort">
+        <label>Price Range: {{ priceRange }}</label>
+        <Slider v-model="priceRange" :max="maxPrice" />
+      </div>
+
+      <div class="collection-sort">
         <label>Filter by:</label>
         <select @change="onCategorySelected">
           <option
@@ -28,13 +33,24 @@
 </template>
 
 <script>
+import Slider from "primevue/slider/Slider";
+
 export default {
   name: "Header",
   props: {
     categories: Array,
     selectedCategory: String,
     sortOptions: Array,
-    selectedSortOption: String
+    selectedSortOption: String,
+    maxPrice: Number
+  },
+  data() {
+    return {
+      priceRange: this.maxPrice
+    };
+  },
+  components: {
+    Slider
   },
   methods: {
     onCategorySelected({ target: { value: category } }) {
@@ -43,8 +59,21 @@ export default {
     onSortOptionSelected({ target: { value: sortOption } }) {
       this.$emit("sortOptionSelected", sortOption);
     }
+  },
+  watch: {
+    priceRange(newPriceRange) {
+      this.$emit("priceRangeChanged", newPriceRange);
+    }
   }
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+h1 {
+  display: flex;
+}
+
+.collection-sort {
+  flex: 1;
+}
+</style>

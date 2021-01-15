@@ -5,12 +5,14 @@
       :selectedCategory="selectedCategory"
       :sortOptions="sortOptions"
       :selectedSortOption="selectedSortOption"
+      :maxPrice="maxPrice"
       @categorySelected="onCategorySelected($event)"
       @sortOptionSelected="onSortOptionSelected($event)"
+      @priceRangeChanged="priceRange = $event"
     ></Header>
     <Cart :products="cartProducts"></Cart>
     <ProductList
-      :products="filteredProducts"
+      :products="filteredByPrice"
       @addedToCart="addToCart($event)"
     ></ProductList>
   </template>
@@ -40,7 +42,8 @@ export default {
         "Price, high to low"
       ],
       selectedSortOption: "Alphabetically, A-Z",
-      loading: false
+      loading: false,
+      priceRange: this.maxPrice
     };
   },
   computed: {
@@ -56,31 +59,39 @@ export default {
         );
       }
 
-      return filteredProducts.sort((a, b) => {
-        const comparer = (prop, asc) =>
-          asc
-            ? a[prop] === b[prop]
+      return filteredProducts;
+    },
+    filteredByPrice() {
+      return this.filteredProducts
+        .filter(p => p.price <= this.priceRange)
+        .sort((a, b) => {
+          const comparer = (prop, asc) =>
+            asc
+              ? a[prop] === b[prop]
+                ? 0
+                : a[prop] < b[prop]
+                ? -1
+                : 1
+              : a[prop] === b[prop]
               ? 0
-              : a[prop] < b[prop]
+              : a[prop] > b[prop]
               ? -1
-              : 1
-            : a[prop] === b[prop]
-            ? 0
-            : a[prop] > b[prop]
-            ? -1
-            : 1;
+              : 1;
 
-        switch (this.selectedSortOption) {
-          case "Alphabetically, A-Z":
-            return comparer("title", true);
-          case "Alphabetically, Z-A":
-            return comparer("title", false);
-          case "Price, low to high":
-            return comparer("price", true);
-          case "Price, high to low":
-            return comparer("price", false);
-        }
-      });
+          switch (this.selectedSortOption) {
+            case "Alphabetically, A-Z":
+              return comparer("title", true);
+            case "Alphabetically, Z-A":
+              return comparer("title", false);
+            case "Price, low to high":
+              return comparer("price", true);
+            case "Price, high to low":
+              return comparer("price", false);
+          }
+        });
+    },
+    maxPrice() {
+      return Math.max(...this.filteredProducts.map(p => p.price));
     }
   },
   components: {
@@ -94,6 +105,7 @@ export default {
       this.products = (
         await axios.get("https://fakestoreapi.com/products")
       ).data;
+      console.log(this.products);
       this.loading = false;
     } catch (e) {
       console.error(e);
@@ -108,6 +120,11 @@ export default {
     },
     addToCart(product) {
       this.cartProducts.push(product);
+    }
+  },
+  watch: {
+    maxPrice(val) {
+      this.priceRange = val;
     }
   }
 };
@@ -284,7 +301,6 @@ body {
 h1 {
   font-size: 28px;
   font-weight: 300;
-  flex: 1;
 }
 
 h5 {
@@ -307,6 +323,8 @@ h6 {
 .sort {
   display: flex;
   align-self: flex-end;
+  flex: 1;
+  margin-left: 100px;
 }
 
 .collection-sort {
